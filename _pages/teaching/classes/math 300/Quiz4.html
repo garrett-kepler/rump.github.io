@@ -1,0 +1,381 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<title>Secure Quiz</title>
+
+<style>
+    
+body{
+    font-family:Arial,sans-serif;
+    margin:40px;
+    max-width:900px;
+}
+
+textarea{
+    width:100%;
+    height:250px;
+    font-size:16px;
+}
+
+#quiz{
+    display:none;
+}
+
+#startBtn{
+    display:none;
+    margin-top:15px;
+}
+
+button{
+    padding:10px 20px;
+    font-size:16px;
+}
+
+input{
+    font-size:16px;
+    padding:8px;
+    width:300px;
+}
+</style>
+
+</head>
+<body>
+
+<h1>Quiz 4</h1>
+
+<div id="login">
+        <h3>By entering in your initials:</h3>
+        <ol>
+            <li>You agree not to use outside resources including notes, LLMs, the internet, etc.</li>
+            <li>You agree to remain in full screen while you complete the exam.</li>
+        </ol>
+<br><br>
+    <input
+        id="studentName"
+        type="text"
+        placeholder="Your initials">
+
+    <br><br>
+
+    <button onclick="submitName()">
+        Submit
+    </button>
+
+    <br>
+
+    <button
+        id="startBtn"
+        onclick="startQuiz()">
+
+        Start Quiz
+
+    </button>
+
+</div>
+
+<div id="quiz">
+<h2 id="timer" style="color:black;">
+Time Remaining: 30:00
+</h2>
+<h2>Question 1</h2>
+
+<p>
+Given the following dataset
+<pre><code>
+    contdata = [1,1,1,2,2,3,4,5]
+</code></pre>
+
+<ul>
+    <li>What is the mean?</li>
+    <li>What is the median?</li>
+    <li>What is the mode?</li>
+</ul>
+</p>
+
+<textarea id="q1"></textarea>
+
+<h2>Question 2</h2>
+
+<p>
+Recall the definition of standard deviation:
+$$
+\sqrt{\frac{\sum (x_i-\bar{x})^2}{n}}
+$$
+where \(\bar{x}\) is the mean of the dataset. 
+<ul>
+    <li>What information, if any, do you gain from knowing one dataset's 
+        standard deviation is larger than another dataset's?
+    </li>
+    <li>
+        What information, if any, do you gain about the mean by knowing the standard 
+        deviation?
+    </li>
+</ul>
+</p>
+<textarea id="q2"></textarea>
+
+<h2>Question 3</h2>
+
+<p>
+Make a dataset with at least 5 data points such that the mean is larger than
+the median. Make another such that the median is larger than the mode.
+</p>
+
+<textarea id="q3"></textarea>
+
+<h2>Question 4</h2>
+
+<p>
+What does correlation represent?
+</p>
+
+<textarea id="q4"></textarea>
+
+
+
+
+<button onclick="submitExam()">
+Submit Quiz
+</button>
+
+</div>
+
+<script>
+let timeRemaining = 30 * 60; 
+let timerInterval;
+
+let studentName = "";
+let violations = [];
+
+function logViolation(type){
+
+    violations.push(type);
+
+    console.log(type);
+
+}
+
+function submitName(){
+
+    const name =
+        document.getElementById("studentName")
+        .value
+        .trim();
+
+    if(name===""){
+
+        alert("Please enter your initials.");
+
+        return;
+
+    }
+
+    studentName=name;
+
+    document.getElementById("studentName").disabled=true;
+
+    document.getElementById("startBtn").style.display="inline-block";
+
+}
+function startTimer(){
+
+    timerInterval = setInterval(function(){
+
+        timeRemaining--;
+
+        const minutes =
+            Math.floor(timeRemaining / 60);
+
+        const seconds =
+            timeRemaining % 60;
+
+        document.getElementById("timer").innerHTML =
+            "Time Remaining: " +
+            String(minutes).padStart(2,"0") +
+            ":" +
+            String(seconds).padStart(2,"0");
+
+        if(timeRemaining <= 0){
+
+            clearInterval(timerInterval);
+
+            alert("Time has expired.");
+
+            submitExam();
+
+        }
+
+    },1000);
+
+}
+async function startQuiz(){
+
+    document.getElementById("login").style.display="none";
+
+    document.getElementById("quiz").style.display="block";
+
+    try{
+
+        await document.documentElement.requestFullscreen();
+
+    }
+
+    catch(err){
+
+        alert("Fullscreen is required.");
+
+    }
+
+    startTimer();
+}
+
+document.addEventListener(
+    "fullscreenchange",
+    function(){
+
+        if(!document.fullscreenElement){
+
+            logViolation("Exited Fullscreen");
+
+        }
+
+    }
+);
+
+window.addEventListener(
+    "blur",
+    function(){
+
+        logViolation("Window Lost Focus");
+
+    }
+);
+
+document.addEventListener(
+    "visibilitychange",
+    function(){
+
+        if(document.hidden){
+
+            logViolation("Tab Switch");
+
+        }
+
+    }
+);
+
+document.addEventListener(
+    "copy",
+    function(e){
+
+   
+
+        logViolation("Copy Attempt");
+
+    }
+);
+
+document.addEventListener(
+    "paste",
+    function(e){
+
+    
+
+        logViolation("Paste Attempt");
+
+    }
+);
+
+document.addEventListener(
+    "cut",
+    function(e){
+
+   
+
+        logViolation("Cut Attempt");
+
+    }
+);
+
+document.addEventListener(
+    "contextmenu",
+    function(e){
+
+        
+
+        logViolation("Right Click");
+
+    }
+);
+
+async function submitExam(){
+
+    const url =
+    "https://script.google.com/macros/s/AKfycbyQhnM3h2Vy_Cr3rGxjMNXvPg1PpoW2wQASNvcPuKOgf7rMyGKuen8X7gEdX8fSwoofoA/exec";
+
+    const params =
+        new URLSearchParams();
+
+    params.append(
+        "student",
+        studentName
+    );
+
+    params.append(
+        "q1",
+        document.getElementById("q1").value
+    );
+    params.append(
+        "q2",
+        document.getElementById("q2").value
+    );
+    params.append(
+        "q3",
+        document.getElementById("q3").value
+    );
+    params.append(
+        "q4",
+        document.getElementById("q4").value
+    );
+    params.append(
+        "violations",
+        violations.join(", ")
+    );
+
+    try{
+
+        const response =
+            await fetch(url,{
+                method:"POST",
+                body:params
+            });
+
+        const text =
+            await response.text();
+
+        alert("Quiz Submitted!");
+
+        console.log(text);
+
+    }
+
+    catch(err){
+
+        console.error(err);
+
+        alert("Submission Failed");
+
+    }
+
+    clearInterval(timerInterval);
+
+}
+
+</script>
+
+</body>
+</html>

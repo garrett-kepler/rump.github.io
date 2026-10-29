@@ -1,0 +1,192 @@
+---
+permalink: /resources/LLN/
+title: "Law of Large Numbers (LLN): A Visualization"
+author_profile: true
+---
+<!DOCTYPE html>
+<html>
+<head>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+    }
+    .container {
+      display: flex;
+      flex-direction:column;
+    }
+    .controls {
+      display: flex;
+      flex-direction: row;
+    }
+    .chart-container {
+    }
+    button {
+      margin: 5px;
+      height: 40px;
+      width: 40px;
+      font-size: 7px;
+      background-color: white;
+      border-radius: 190px;
+      transition: all .2s;
+      text-align: center;
+    }
+  .effect2 {
+   &:hover {
+     box-shadow: 0px 0 0 0 #1f1f1f,  0px 0 0 10px rgb(219, 218, 218);
+   }
+
+   &:active {
+     box-shadow: 0px 0 0 11px #FFF, 0px 0 0 10px rgb(219, 218, 218);
+   }
+  }
+  </style>
+</head>
+<body>
+
+<h2>Law of Large Numbers (LLN): A Visualization</h2>
+
+<p>Flipping a coin 1,000 times, you might know to expect about 500 heads (since we have a 50/50 chance for heads/tails). This isn't the only outcome though. 
+  We could flip 1,000 heads and be considered unlucky indeed (the chance this happens is about 1 over a googol cubed). 
+  What the law of large numbers says is that these unfortunate cases <i>probably</i> won't affect the average in the long run.
+<br>
+<br>
+Try generating some random numbers uniformly yourself or clicking 'Start Random' to automatically generate uniformly. What we expect is that the average will <i>eventually</i> converge to the mean.
+</p>
+<label>Number of options:</label>
+<input type="number" id="numOptions" min="0" max="10" value="5" style="width: 50px">
+<button onclick="generateButtons()", class="effect2">Create Options</button>
+
+<div id="buttons"></div>
+<div class="container" style="position: relative; align-items: center; height:60vh; width:80vw">
+
+  <div class="controls">
+    <button onclick="random()" class="effect2">
+  Random Pick</button>
+<button onclick="startsim()" class="effect2">
+  Start Random</button>
+<button onclick="stopsim()" class="effect2">
+  Stop Random
+</button>
+<button onclick="reset()" class="effect2">
+  Reset Plot
+</button>
+  </div>
+
+  <div class="chart-container" style = "height:70%; width:100%">
+    <canvas id="chart"></canvas>
+  </div>
+<p>Previous sample: <span id="lastPick">-</span> Sample count: <span id="count">0</span> Average: <span id="avg">0</span></p>
+</div>
+<script>
+let total = 0;
+let count = 0;
+let data = [];
+let labels = [];
+let interval;
+
+const ctx = document.getElementById('chart').getContext('2d');
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: labels,
+    datasets: [{
+      label: 'Running Average',
+      data: data,
+      fill: false,
+      tension: .2,
+    },
+    {label: 'Mean of Distribution',
+        data: [], 
+        fill: false
+      }]
+  }
+});
+function uniexp() {
+  let n = parseInt(document.getElementById("numOptions").value);
+  return (n + 1) / 2;
+}
+function selectValue(value) {
+  total += value;
+  count++;
+  let avg = total / count;
+  let expected = uniexp();
+  data.push(avg);
+  labels.push(count);
+  chart.data.datasets[1].data.push(expected);
+
+  document.getElementById("avg").innerText = avg.toFixed(2);
+  document.getElementById("count").innerText = count;
+  document.getElementById("lastPick").innerText = value;
+
+  chart.update();
+}
+function generateButtons() {
+  const container = document.getElementById("buttons");
+  container.innerHTML = "";
+
+  const n = parseInt(document.getElementById("numOptions").value);
+  for (let i = 1; i <= n; i++) {
+    const btn = document.createElement("button");
+    btn.innerText = i;
+    btn.className = 'effect2';
+    btn.onclick = () => selectValue(i);
+
+    container.appendChild(btn);
+  }
+}
+
+function random() {
+  let max = parseInt(document.getElementById("numOptions").value);
+  let value = Math.floor(Math.random() * max) + 1;
+
+  selectValue(value);
+}
+function startsim() {
+  if (!interval) {
+    interval = setInterval(random, 200);
+  }
+}
+
+function stopsim() {
+  clearInterval(interval);
+  interval = null;
+}
+
+function reset() {
+  total = 0;
+  count = 0;
+  data.length = 0;
+  labels.length = 0;
+  chart.data.datasets[1].data.length = 0;
+  document.getElementById("avg").innerText = 0;
+  document.getElementById("count").innerText = 0;
+  document.getElementById("lastPick").innerText = "-";
+
+  chart.update();
+}
+</script>
+
+<h3><u>Weak LLN</u></h3>
+
+Formally, what the Weak Law says is that the running average is arbitrarily close to the mean with probability 1:
+
+
+<p><i>Let \(X_1,X_2,\dots\) be independent and identically distributed random variables with a finite expected value  \(\left(\mathbb{E}[X]<\infty\right)\). Then, for any \(\epsilon>0\),
+  $$\lim_{n\to \infty}\mathbb{P}\left[\left|\frac{1}{n}\sum_{i=1}^nX_i-\mu\right|\geq \epsilon \right]=0$$</i>
+</p>
+
+<h3><u>Strong LLN</u></h3>
+
+WLLN's more profound counterpart, the Strong Law, states the limit of the average is the mean with probability 1.
+
+<p>
+  <i>Let \(X_1,X_2,\dots\) be independent and identically distributed random variables with a finite mean and variance. Then,
+  $$\mathbb{P}\left[\lim_{n\to \infty}\frac{1}{n}\sum_{i=1}^nX_i=\mu \right]=1$$
+</i>
+</p>
+</body>
+</html>

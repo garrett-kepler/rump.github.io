@@ -1,0 +1,230 @@
+---
+permalink: /resources/gerry/
+title: "So... You Want to be a Gerrymanderer?"
+author_profile: true
+---
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {font-family: Arial}
+    #container { position: relative; display: inline-block; }
+    #grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+      position: relative;
+      z-index: 1;
+    }
+    button {
+      height: 20px;
+      width: 60px;
+      font-size: 12px;
+      background-color: white;
+      border-radius: 8px;
+      transition: all .2s;
+      text-align: center;
+    }
+    .cell {
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      border: 2px solid black;
+      border-radius: 50%;
+      cursor: pointer;
+      background: white; 
+    }
+
+    .p1-temp { background: #ffcccc; } 
+    .p1 { background: red; color: white; }
+
+    .p2-temp { background: #cce5ff; } 
+    .p2 { background: blue; color: white; }
+
+    #edges {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+  </style>
+</head>
+<body>
+<h2>Rules:</h2>
+<ol>
+  <li>You can only select the given amount of nodes for a district</li>
+  <li>Districts must be connected</li>
+  <li>If a district has more of your nodes than your opponent, you get a point!</li>
+</ol>
+<h2>Goal:</h2>
+<ol><li>Get as many points as you can!</li>
+</ol>
+
+<h2>Play:</h2>
+<label>Grid Size: </label>
+<input type="range" id="sizeInput" 
+value="3" min="2" max="5" style="width: 200px;">
+
+<button onclick="resetGame()">Start</button>
+
+<h3 id="turn"></h3>
+
+<div id="container">
+  <svg id="edges"></svg>
+  <div id="grid"></div>
+</div>
+
+<p id="status"></p>
+
+<script>
+let size, grid, claimed, currentPick, turn, blocks;
+function resetGame() {
+  size = parseInt(document.getElementById("sizeInput").value);
+  grid = ["A","B","A","B","A",
+    "A","B","B","A","A",
+    "B","A","B","A","B",
+    "B","A","B","B","B",
+    "A","A","A","A","B"
+  ].slice(0,size * size);
+  claimed = Array(size * size).fill(0);
+  currentPick = [];
+  blocks = [];
+  turn = 1;
+  let p1Score = 0;
+  let p2Score = 0;
+  p1Score = 0;
+  p2Score = 0;
+  const gridDiv = document.getElementById("grid");
+  gridDiv.style.gridTemplateColumns = `repeat(${size}, 60px)`;
+  updateTurn();
+  render();
+}
+
+function updateTurn() {
+  document.getElementById("turn").textContent =
+    `Player ${turn}: Pick ${size} connected nodes`;
+}
+
+function getNeighbors(i) {
+  const x = Math.floor(i / size);
+  const y = i % size;
+  let n = [];
+  if (x > 0) n.push(i - size);
+  if (x < size - 1) n.push(i + size);
+  if (y > 0) n.push(i - 1);
+  if (y < size - 1) n.push(i + 1);
+  return n;
+}
+
+function handleClick(i) {
+  if (claimed[i] !== 0) return;
+  if (currentPick.includes(i)) return;
+  if (currentPick.length >= size) return;
+
+  if (currentPick.length > 0) {
+    let valid = currentPick.some(j => getNeighbors(j).includes(i));
+    if (!valid) return;
+  }
+  currentPick.push(i);
+  if (currentPick.length === size) finalizeBlock();
+  render();
+}
+
+function finalizeBlock() {
+  currentPick.forEach(i => claimed[i] = turn);
+
+  blocks.push({ player: turn, cells: [...currentPick] });
+
+  currentPick = [];
+  turn = turn === 1 ? 2 : 1;
+
+  let remaining = claimed.filter(x => x === 0).length;
+
+  if (remaining < size) finishGame();
+  else updateTurn();
+
+  render();
+}
+
+function finishGame() {
+  let p1 = 0, p2 = 0;
+
+  blocks.forEach(b => {
+    let A = 0, B = 0;
+
+    b.cells.forEach(i => {
+      if (grid[i] === "A") A++;
+      else B++;
+    });
+
+    if ( A > B) p1++;
+    if ( B > A) p2++;
+  });
+
+  document.getElementById("status").textContent =
+    `Final Score → Player 1: ${p1} | Player 2: ${p2}`;
+}
+
+function render() {
+  const gridDiv = document.getElementById("grid");
+  gridDiv.innerHTML = "";
+
+  grid.forEach((val, i) => {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    if (claimed[i] === 1) cell.classList.add("p1");
+    if (claimed[i] === 2) cell.classList.add("p2");
+    if (currentPick.includes(i)) {
+      if (turn === 1) cell.classList.add("p1-temp");
+      else cell.classList.add("p2-temp");
+    }
+    cell.textContent = val;
+    cell.onclick = () => handleClick(i);
+
+    gridDiv.appendChild(cell);
+  });
+
+  setTimeout(drawEdges, 0);
+}
+
+function drawEdges() {
+  const svg = document.getElementById("edges");
+  const gridDiv = document.getElementById("grid");
+  const rect = gridDiv.getBoundingClientRect();
+
+  svg.innerHTML = "";
+  svg.setAttribute("width", rect.width);
+  svg.setAttribute("height", rect.height);
+
+  const cells = gridDiv.children;
+  for (let i = 0; i < size * size; i++) {
+    const r1 = cells[i].getBoundingClientRect();
+    const x1 = r1.left - rect.left + r1.width / 2;
+    const y1 = r1.top - rect.top + r1.height / 2;
+    getNeighbors(i).forEach(j => {
+      if (j > i) {
+        const r2 = cells[j].getBoundingClientRect();
+        const x2 = r2.left - rect.left + r2.width / 2;
+        const y2 = r2.top - rect.top + r2.height / 2;
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", x1);
+        line.setAttribute("y1", y1);
+        line.setAttribute("x2", x2);
+        line.setAttribute("y2", y2);
+        line.setAttribute("stroke", "black");
+        line.setAttribute("stroke-width", "2");
+        svg.appendChild(line);
+      }
+    });
+  }
+}
+
+resetGame();
+</script>
+
+</body>
+</html>
